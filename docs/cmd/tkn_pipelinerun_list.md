@@ -30,6 +30,7 @@ List all PipelineRuns in a namespace 'foo':
 ```
   -A, --all-namespaces                list pipelineruns from all namespaces
       --allow-missing-template-keys   If true, ignore any errors in templates when a field or map key is missing in the template. Only applies to golang and jsonpath output formats. (default true)
+      --field-selector string         Selector (field query) to filter on, supports '=', '==', and '!='.(e.g. --field-selector key1=value1,key2=value2). The server only supports a limited number of field queries per type.
   -h, --help                          help for list
       --label string                  A selector (label query) to filter on, supports '=', '==', and '!='
       --limit int                     limit pipelineruns listed (default: return all pipelineruns)

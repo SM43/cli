@@ -405,6 +405,13 @@ func TestListPipelineRuns_v1beta1(t *testing.T) {
 			wantError: false,
 		},
 		{
+			name:      "filter pipelineruns by field selector",
+			command:   command(t, prs, clock.Now(), ns, version, dc1),
+			args:      []string{"list", "--field-selector", "metadata.name=pr0-1"},
+			wantError: true,
+		},
+
+		{
 			name:      "print in reverse",
 			command:   command(t, prs, clock.Now(), ns, version, dc1),
 			args:      []string{"list", "--reverse", "-n", "namespace"},

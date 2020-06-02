@@ -53,6 +53,7 @@ NAME	STARTED	DURATION	STATUS
 type ListOptions struct {
 	Limit         int
 	LabelSelector string
+	FieldSelector string
 	Reverse       bool
 	AllNamespaces bool
 	NoHeaders     bool
@@ -97,7 +98,7 @@ List all PipelineRuns in a namespace 'foo':
 				return nil
 			}
 
-			prs, err := list(p, pipeline, opts.Limit, opts.LabelSelector, opts.AllNamespaces)
+			prs, err := list(p, pipeline, opts.Limit, opts.LabelSelector, opts.AllNamespaces, opts.FieldSelector)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Failed to list pipelineruns from %s namespace \n", p.Namespace())
 				return err
@@ -145,13 +146,14 @@ List all PipelineRuns in a namespace 'foo':
 	f.AddFlags(c)
 	c.Flags().IntVarP(&opts.Limit, "limit", "", 0, "limit pipelineruns listed (default: return all pipelineruns)")
 	c.Flags().StringVarP(&opts.LabelSelector, "label", "", opts.LabelSelector, "A selector (label query) to filter on, supports '=', '==', and '!='")
+	c.Flags().StringVar(&opts.FieldSelector, "field-selector", opts.FieldSelector, "Selector (field query) to filter on, supports '=', '==', and '!='.(e.g. --field-selector key1=value1,key2=value2). The server only supports a limited number of field queries per type.")
 	c.Flags().BoolVarP(&opts.Reverse, "reverse", "", opts.Reverse, "list pipelineruns in reverse order")
 	c.Flags().BoolVarP(&opts.AllNamespaces, "all-namespaces", "A", opts.AllNamespaces, "list pipelineruns from all namespaces")
 	c.Flags().BoolVarP(&opts.NoHeaders, "no-headers", "", opts.NoHeaders, "do not print column headers with output (default print column headers with output)")
 	return c
 }
 
-func list(p cli.Params, pipeline string, limit int, labelselector string, allnamespaces bool) (*v1beta1.PipelineRunList, error) {
+func list(p cli.Params, pipeline string, limit int, labelselector string, allnamespaces bool, fieldselector string) (*v1beta1.PipelineRunList, error) {
 	var selector string
 	var options v1.ListOptions
 
@@ -171,9 +173,11 @@ func list(p cli.Params, pipeline string, limit int, labelselector string, allnam
 	}
 
 	if selector != "" {
-		options = v1.ListOptions{
-			LabelSelector: selector,
-		}
+		options.LabelSelector = selector
+	}
+
+	if fieldselector != "" {
+		options.FieldSelector = fieldselector
 	}
 
 	ns := p.Namespace()

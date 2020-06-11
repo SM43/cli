@@ -15,6 +15,7 @@
 package pipelinerun
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -32,7 +33,10 @@ import (
 	"gotest.tools/v3/golden"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/dynamic"
+	ktesting "k8s.io/client-go/testing"
 	"knative.dev/pkg/apis"
 )
 
@@ -129,6 +133,33 @@ func TestListPipelineRuns(t *testing.T) {
 		t.Errorf("unable to create dynamic client: %v", err)
 	}
 
+	tdc3 := testDynamic.Options{
+		PrependReactors: []testDynamic.PrependOpt{
+			{
+				Resource: "pipelinerun",
+				Verb:     "list",
+				Action: func(action ktesting.Action) (handled bool, ret runtime.Object, err error) {
+					listAction := action.(ktesting.ListAction)
+					fieldRestrictions := listAction.GetListRestrictions().Fields.String()
+					if fieldRestrictions != "metadata.name=pr0-1" {
+						return false, nil, errors.New("fake list taskrun error")
+					}
+					return true, prs[0], nil
+				},
+			},
+		},
+	}
+	dc3, err := tdc3.Client(
+		cb.UnstructuredPR(prs[0], version),
+		cb.UnstructuredPR(prs[1], version),
+		cb.UnstructuredPR(prs[2], version),
+		cb.UnstructuredPR(prs[3], version),
+		cb.UnstructuredPR(prs[4], version),
+	)
+	if err != nil {
+		t.Errorf("unable to create dynamic client: %v", err)
+	}
+
 	tests := []struct {
 		name      string
 		command   *cobra.Command
@@ -140,6 +171,12 @@ func TestListPipelineRuns(t *testing.T) {
 			command:   command(t, prs, clock.Now(), ns, version, dc1),
 			args:      []string{"list", "-n", "invalid"},
 			wantError: true,
+		},
+		{
+			name:      "list pipelinerun by field-selector",
+			command:   command(t, prs, clock.Now(), ns, version, dc3),
+			args:      []string{"list", "-n", "namespace", "--field-selector", "metadata.name=pr0-1"},
+			wantError: false,
 		},
 		{
 			name:      "by pipeline name",

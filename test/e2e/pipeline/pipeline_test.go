@@ -192,6 +192,18 @@ Waiting for logs to be available...
 
 	time.Sleep(1 * time.Second)
 
+	t.Run("Get list of Pipelineruns using field-selector", func(t *testing.T) {
+		pipelinerunGeneratedName := e2e.GetPipelineRunListWithName(c, tePipelineName).Items[0].Name
+		fs := "metadata.name=" + pipelinerunGeneratedName
+		res := tkn.Run("pipelinerun", "list", "--field-selector", fs)
+
+		res.Assert(t, icmd.Expected{
+			ExitCode: 0,
+			Err:      icmd.None,
+		})
+		assert.Check(t, strings.Contains(res.Stdout, pipelineRunGeneratedName), "String does not contain expected PipelineRun name")
+	})
+
 	t.Run("Get list of Taskruns from namespace  "+namespace, func(t *testing.T) {
 		res := tkn.Run("taskrun", "list")
 

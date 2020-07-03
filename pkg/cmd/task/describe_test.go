@@ -80,6 +80,40 @@ func TestTaskDescribe_Empty(t *testing.T) {
 	test.AssertOutput(t, expected, err.Error())
 }
 
+func TestTaskDescribe_WithoutNameIfOnlyOneTaskPresent(t *testing.T) {
+	tasks := []*v1alpha1.Task{
+		tb.Task("task-1", tb.TaskNamespace("ns")),
+	}
+
+	namespaces := []*corev1.Namespace{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "ns",
+			},
+		},
+	}
+
+	version := "v1alpha1"
+	tdc := testDynamic.Options{}
+	dynamic, err := tdc.Client(
+		cb.UnstructuredT(tasks[0], version),
+	)
+	if err != nil {
+		t.Errorf("unable to create dynamic client: %v", err)
+	}
+
+	cs, _ := test.SeedTestData(t, pipelinetest.Data{Tasks: tasks, Namespaces: namespaces})
+	cs.Pipeline.Resources = cb.APIResourceList(version, []string{"task", "taskrun"})
+	p := &test.Params{Tekton: cs.Pipeline, Kube: cs.Kube, Dynamic: dynamic}
+	p.SetNamespace("ns")
+	task := Command(p)
+	out, err := test.ExecuteCommand(task, "desc")
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+	golden.Assert(t, out, fmt.Sprintf("%s.golden", t.Name()))
+}
+
 func TestTaskDescribe_OnlyName(t *testing.T) {
 	tasks := []*v1alpha1.Task{
 		tb.Task("task-1", tb.TaskNamespace("ns")),
